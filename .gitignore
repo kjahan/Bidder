@@ -22,3 +22,11 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+#added by kazem: exculde all data and unnecessary files from being committed
+*.sock
+venv
+models/*
+hello.py
+train.csv
+run.py
