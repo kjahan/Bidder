@@ -7,11 +7,18 @@ load_model = True #for const we don't load ctr prediction model
 app = Flask(__name__)
 opt = BidOptimizer(load_model)
 
+@app.route('/bidders/nobid', methods=['POST'])
+def nobid_bidder():
+    return Response(status=204, mimetype='application/json')
+
 @app.route('/bidders/const', methods=['POST'])
 def const_bidder():
+    bid_val = opt.const_bidder(json.loads(request.data))
+    if not bid_val:
+        return nobid_bidder()
     #if request.headers['Content-Type'] == 'application/json':	#redundant process --> removed for optimization reason
     data = {
-        'bid'  : opt.const_bidder(json.loads(request.data))
+        'bid'  : bid_val
     }
     js = json.dumps(data)
     return Response(js, status=200, mimetype='application/json')

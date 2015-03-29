@@ -31,8 +31,7 @@ class BidOptimizer:
         avg_CTR = 0.08*0.01 #computed from history data --> this can be updated over time
         base_bid = max_bid*avg_CTR
         bid_val = avg_cpm + self.total_budget*(max_bid - avg_cpm)/(three_days_budget)  #dynamic bid value computed for conts and rand algs
-        const_bid = bid_val
-        self.const_bid_val = const_bid  #const bidder parameter
+        self.const_bid_val = bid_val  #const bidder parameter
         self.max_bid_val = max_bid      #random bidder parameter
         self.max_eCPC = max_eCPC        #Mcpc bidder parameter
         self.base_bid = base_bid 
@@ -41,7 +40,9 @@ class BidOptimizer:
     #const bidder
     def const_bidder(self, payload):
         data = parser.parse(payload) #parse payload
-        self.const_bid_val = data["bidfloor"] + 0.02    #bid 2 cents above bid floor
+        self.const_bid_val = data["bidfloor"] + 0.01   #bid 1 cents above bid floor
+        if self.const_bid_val < data["bidfloor"]:
+            return None #Do Not bid
         return self.const_bid_val
     
     #random bidder
