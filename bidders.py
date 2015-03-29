@@ -11,7 +11,7 @@ opt = BidOptimizer(load_model)
 def const_bidder():
     #if request.headers['Content-Type'] == 'application/json':	#redundant process --> removed for optimization reason
     data = {
-        'bid'  : opt.const_bidder()
+        'bid'  : opt.const_bidder(json.loads(request.data))
     }
     js = json.dumps(data)
     return Response(js, status=200, mimetype='application/json')
@@ -42,4 +42,4 @@ def lin_bidder():
     return Response(js, status=200, mimetype='application/json')
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5001, debug=False)	#set debug flag to False
+    app.run(host="0.0.0.0", port=5001, debug=True)	#set debug flag to False

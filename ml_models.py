@@ -4,7 +4,7 @@ import pickle, parser, feature, encoder
 class Model:
     def __init__(self):
         self.lr = None
-        self.model_fn = '/var/www/bidengine/models/lr'
+        self.lr_model_fn = '/var/www/bidengine/models/lr'
         self.enc = encoder.Encoder()
 
     #this method stores builds an lr model
@@ -15,15 +15,15 @@ class Model:
         print "built done!"
         self.lr = lr
 
-    #serialize model
-    def save_model(self):
-        with open(self.model_fn, 'wb') as fp:
+    #serialize lr model
+    def save_lr_model(self):
+        with open(self.lr_model_fn, 'wb') as fp:
             pickle.dump(self.lr, fp)
 
-    #deserialize ml model
-    def load_model(self):
+    #deserialize lr model
+    def load_lr_model(self):
         #print "get lr model"
-        with open(self.model_fn,'rb') as fp:
+        with open(self.lr_model_fn,'rb') as fp:
             self.lr = pickle.load(fp)
 
     #this method takes one test point and returns y_pred, y and predicted label
@@ -35,3 +35,4 @@ class Model:
         y_pred = self.lr.predict(x)
         prob = self.lr.predict_proba(x)
         return {"prob": prob[0][1], "y_pred": y_pred} #store label and pr(y=1)
+

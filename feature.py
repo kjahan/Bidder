@@ -1,15 +1,18 @@
 import numpy as np
 from datetime import datetime
+import time
 from ua_parser import user_agent_parser
 
 def extract_features(data):
     fet = {}
     #exctarct features we want to use for building model
     fet["id"] = data["id"] #bid id
-    date = datetime.strptime(str(data["ts"]), '%Y%m%d%H%M%S%f')
+    ts = time.time()    #current time we need for campaign day parting support
+    date = datetime.strptime(str(ts), '%Y%m%d%H%M%S%f')
     fet["dow"] = str(date.weekday()) #day of week
     fet["month"] = str(date.month)   #month
     fet["hour"] = str(date.hour) #hour of day
+    #parse user agent
     result_dict = user_agent_parser.Parse(data["ua"])
     fet["osfamily"] = transform_os_fet(result_dict['os']['family'].lower())   #iOS
     fet['uafamily'] = transform_browser_fet(result_dict['user_agent']['family'].lower())   #Mobile Safari
@@ -18,21 +21,13 @@ def extract_features(data):
     fet["country"] = data["country"] #country
     fet["region"] = data["region"] #region
     fet["city"] = data["city"] #city
-    fet["domain"] = data["domain"] #domain
-    fet["page"] = data["page"] #url
+    #fet["domain"] = data["domain"] #domain
+    #fet["page"] = data["page"] #url
     fet["w"] = data["w"] #ad slot width
     fet["h"] = data["h"] #ad slot height
     fet["slotsize"] = str(data["w"]) + "*" + str(data["h"])
     fet["bidfloor"] = int(data["bidfloor"]) #bid floor price
-    fet["ts"] = data["ts"] #ts
-    fet["adexchangeid"] = data["adexchangeid"]
-    fet["visibility"] = data["visibility"]
-    fet["format"] = data["format"]
-    fet["pp"] = data["pp"]
-    fet["bp"] = data["bp"]
-    fet["tags"] = data["tags"]
-    fet["clk"] = int(data["clk"])
-    fet["conv"] = int(data["conv"])
+    fet["ts"] = ts #ts
     return fet
 
 def transform_browser_fet(ua_family):
