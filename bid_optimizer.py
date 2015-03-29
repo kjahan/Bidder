@@ -1,6 +1,5 @@
 from ml_models import Model
-import random as rand
-import parser
+import random as rand, parser, redis
 
 class BidOptimizer:
     def __init__(self, load_ml_model):
@@ -10,9 +9,11 @@ class BidOptimizer:
             #load ml model once for predicting ctr
             self.ml_model = Model()
             self.ml_model.load_lr_model()
+        #part of bidding model is stored in Redis - connect to redis db
+        self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def load_campaign_parameters(self):
-        self.total_budget = 5000.0  #campaign total budget in USD
+        self.total_budget = 5000.0  #campaign total budget in USD --> this should be moved to a config file
         campaign_length = 30.0
         self.daily_budget = self.total_budget/campaign_length   #daily budget
         self.user_freq_cap = 1  #frequency cap for Impression Per User
@@ -37,13 +38,26 @@ class BidOptimizer:
         self.base_bid = base_bid 
         self.avg_CTR = avg_CTR
         
-    #const bidder
+    #basic const bidder
     def const_bidder(self, payload):
-        data = parser.parse(payload) #parse payload
-        self.const_bid_val = data["bidfloor"] + 0.01   #bid 1 cents above bid floor
-        if self.const_bid_val < data["bidfloor"]:
+        data = parser.parse(payload)    #parse bid req payload
+        bid = data["bidfloor"] + 0.01   #bid 1 cent above the bid floor
+        bid_in_cents = int(bid*100.0)
+        total_budget_in_cents = int(self.total_budget*100.0)
+        currentspend = int(self.redis.get("totalspend"))
+        if bid_in_cents + currentspend <= total_budget_in_cents:
+            totalspend = int(self.redis.incrby("totalspend", bid_in_cents))
+            #R1: make sure total spend is under total campaign budget
+            if totalspend > total_budget_in_cents:
+                #we have passed campaign total budget --> rollback & send nobid
+                self.redis.decr("totalspend", bid_in_cents)
+                return None #Do Not bid
+        else:
+            #we have passed campaign total budget --> send nobid
             return None #Do Not bid
-        return self.const_bid_val
+        if bid < data["bidfloor"]:
+            return None #Do Not bid
+        return bid
     
     #random bidder
     def rand_bidder(self):
