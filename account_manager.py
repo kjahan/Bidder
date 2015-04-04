@@ -34,7 +34,7 @@ def adjust_total_spend(bid_id, bid_val):
         if DEBUG:
             print "adjust bid for ", bid_id, " by ", adj
         if adj < 0:
-            redis_db.incrbyfloat("totalspend", adj)    #key is expired so return bid val to total budget
+            redis_db.incrbyfloat("totalspend", adj)    #adjust total spend based on how much exchange charged us
         redis_db.delete(bid_id)    #delete bid id
     except:
         pass
