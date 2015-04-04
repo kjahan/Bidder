@@ -2,10 +2,16 @@ import sys
 from flask import Flask, request, Response
 import ujson as json	#we are using ujson instead of json for performance reasons --> import json
 from bid_optimizer import BidOptimizer
+import account_manager as acc
 
 load_model = True #for const we don't load ctr prediction model
 app = Flask(__name__)
 opt = BidOptimizer(load_model)
+
+@app.route('/win/<bid_id>/<bid_val>')
+def win(bid_id, bid_val):
+    acc.adjust_total_spend(bid_id, bid_val)
+    return Response(status=200, mimetype='application/json')
 
 @app.route('/bidders/nobid', methods=['POST'])
 def nobid_bidder():

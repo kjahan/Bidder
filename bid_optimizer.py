@@ -13,7 +13,7 @@ class BidOptimizer:
         self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def load_campaign_parameters(self):
-        self.total_budget = 5000.0  #campaign total budget in USD --> this should be moved to a config file
+        self.total_budget = 100.0  #campaign total budget in USD --> this should be moved to a config file
         campaign_length = 30.0
         self.daily_budget = self.total_budget/campaign_length   #daily budget
         self.user_freq_cap = 1  #frequency cap for Impression Per User
@@ -37,20 +37,23 @@ class BidOptimizer:
         self.max_eCPC = max_eCPC        #Mcpc bidder parameter
         self.base_bid = base_bid 
         self.avg_CTR = avg_CTR
-        
+        self.nurl_ttl = 30    #how long keep bidid keys in redis for account updating --> set to 1800 secs (from mopub 10-15mins to g
     #basic const bidder
     def const_bidder(self, payload):
         data = parser.parse(payload)    #parse bid req payload
         bid = data["bidfloor"] + 0.01   #bid 1 cent above the bid floor
-        bid_in_cents = int(bid*100.0)
-        total_budget_in_cents = int(self.total_budget*100.0)
-        currentspend = int(self.redis.get("totalspend"))
-        if bid_in_cents + currentspend <= total_budget_in_cents:
-            totalspend = int(self.redis.incrby("totalspend", bid_in_cents))
+        bid_val = bid/1000.0  #cpm pricing model
+        currentspend = float(self.redis.get("totalspend"))
+        if bid_val + currentspend < self.total_budget:
+            totalspend = int(self.redis.incrbyfloat("totalspend", bid_val))  #hard cap to be conservative
+            #we should store this transaction into redis
+            self.redis.set(data["id"], bid_val)  #let's store bid id along with bid val for later accounting
+            shadow_key = "shadow:" + data["id"]
+            self.redis.setex(shadow_key, "", self.nurl_ttl)
             #R1: make sure total spend is under total campaign budget
-            if totalspend > total_budget_in_cents:
+            if totalspend > self.total_budget:
                 #we have passed campaign total budget --> rollback & send nobid
-                self.redis.decr("totalspend", bid_in_cents)
+                self.redis.decr("totalspend", bid_val)
                 return None #Do Not bid
         else:
             #we have passed campaign total budget --> send nobid
