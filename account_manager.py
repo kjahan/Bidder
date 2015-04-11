@@ -19,13 +19,17 @@ def update_total_spend_periodically():
             items = shadow_key.split(':')
             user_id = "user" + ":" + items[1]  #get user id
             bid_id = items[2]   #get bid id
-            adj = -1.0*float(r.get(bid_id)) #get bid val
-            if DEBUG:
-                print bid_id, adj
-            if adj < 0:
-                r.incrbyfloat("totalspend", adj)    #key is expired so return bid val to total budget
-            r.delete(bid_id)    #delete bid id
-            r.decr(user_id) #we didnt win so decrease freq for this user st we can bid later for her/him
+            #let's check if bid_id is in redis --> if not, this means that we have received win before shadow key expires
+            bid_val = r.get(bid_id) #get bid we submited for this bid id from redis
+            if bid_val is not None:
+                #if we come here it means that we haven't received won signal for this shadow key
+                adj = -1.0*float(bid_val) #get bid val
+                if DEBUG:
+                    print bid_id, adj
+                if adj < 0:
+                    r.incrbyfloat("totalspend", adj)    #key is expired so return bid val to total budget
+                r.delete(bid_id)    #delete bid id
+                r.decr(user_id) #we didnt win so decrease freq for this user st we can bid later for her/him
         except:
             pass
 
