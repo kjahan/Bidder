@@ -13,11 +13,11 @@ class BidOptimizer:
         self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def load_campaign_parameters(self):
-        self.total_budget = 0.1#100.0  #campaign total budget in USD --> this should be moved to a config file
+        self.total_budget = 100.0  #campaign total budget in USD --> this should be moved to a config file
         self.nurl_ttl = 1800    #how long keep bidid in redis for account updating --> set 1800 secs (from mopub 10-15mins)
         campaign_length = 30.0
         self.daily_budget = self.total_budget/campaign_length   #daily budget
-        self.user_freq_cap = 2  #frequency cap for Impression Per User
+        self.user_freq_cap = 1  #frequency cap for Impression Per User
         self.app_placement_freq_cap = 10    #Freq Cap per App Placement --> optimize the parameter
         self.placement_cats = []    #whitelist or blacklist apps categories
         self.placements = []    #whitelist or blacklist placements by name
@@ -42,7 +42,7 @@ class BidOptimizer:
     #basic const bidder
     def const_bidder(self, payload):
         data = parser.parse(payload)    #parse bid req payload
-        bid = 0.01 #data["bidfloor"] + 0.01   #bid 1 cent above the bid floor
+        bid = data["bidfloor"] + 0.01   #bid 1 cent above the bid floor
         bid_val = bid/1000.0  #cpm pricing model
         currentspend = float(self.redis.get("totalspend"))
         #if bid < data["bidfloor"]:
