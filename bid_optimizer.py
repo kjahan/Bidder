@@ -13,8 +13,8 @@ class BidOptimizer:
         self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def load_campaign_parameters(self):
-        self.total_budget = 100.0  #campaign total budget in USD --> this should be moved to a config file
-        self.nurl_ttl = 60    #how long keep bidid in redis for account updating --> set 1800 secs (from mopub 10-15mins)
+        self.total_budget = 0.1#100.0  #campaign total budget in USD --> this should be moved to a config file
+        self.nurl_ttl = 1800    #how long keep bidid in redis for account updating --> set 1800 secs (from mopub 10-15mins)
         campaign_length = 30.0
         self.daily_budget = self.total_budget/campaign_length   #daily budget
         self.user_freq_cap = 2  #frequency cap for Impression Per User
@@ -50,15 +50,11 @@ class BidOptimizer:
         if not data["idfa"]:
             return None #Do Not bid as there is no idfa signal to o user capping
         user_id = "user:" + data["idfa"]    #user key for redis freq capping
-        user_feq = int(self.redis.get(user_id))
-        if user_freq < self.user_freq_cap:
-            new_freq = self.redis.incr(user_id) #incr freq for the user
-            if new_freq > self.user_freq_cap:
-                self.redis.decr(user_id)    #we passed freq capp for this user --> go back
-                return None #no bid
-        else:
-            #we passed freq capp for this user --> no bid
-            return None #Do Not bid for this user
+        user_freq = 0   #if we haven't served any ad for this user, set user freq to zero by default
+        try:
+            user_feq = int(self.redis.get(user_id))
+        except:
+            pass
         if bid_val + currentspend < self.total_budget:
             totalspend = float(self.redis.incrbyfloat("totalspend", bid_val))  #hard cap to be conservative --> we should cast as float because all numbers are calculated as float type!
             #R1: make sure total spend is under total campaign budget
@@ -68,6 +64,14 @@ class BidOptimizer:
                 return None #Do Not bid
             #we havent passed total budget so add corresponding states to redis for budget management
             #we should store this transaction into redis
+            if user_freq < self.user_freq_cap:
+                new_freq = int(self.redis.incr(user_id)) #incr freq for the user
+                if new_freq > self.user_freq_cap:
+                    self.redis.decr(user_id)    #we passed freq capp for this user --> go back
+                    return None #no bid
+            else:
+                #we passed freq capp for this user --> no bid
+                return None #Do Not bid for this user
             self.redis.set(data["id"], bid_val)  #let's store bid id along with bid val for later accounting
             shadow_key = "shadow:" + data["idfa"] + ":" + data["id"]    #shadow key is concat of shadow:user_id:bid_id
             self.redis.setex(shadow_key, "", self.nurl_ttl) 
