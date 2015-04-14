@@ -4,7 +4,7 @@ import ujson as json	#we are using ujson instead of json for performance reasons
 from bid_optimizer import BidOptimizer
 import account_manager as acc
 
-load_model = True #for const we don't load ctr prediction model
+load_model = False #for const we don't load ctr prediction model
 app = Flask(__name__)
 opt = BidOptimizer(load_model)
 
