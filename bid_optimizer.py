@@ -13,7 +13,7 @@ class BidOptimizer:
         self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def load_campaign_parameters(self):
-        self.total_budget = 100.0  #campaign total budget in USD --> this should be moved to a config file
+        self.total_budget = 21.0  #campaign total budget in USD --> this should be moved to a config file
         self.nurl_ttl = 1800    #how long keep bidid in redis for account updating --> set 1800 secs (from mopub 10-15mins)
         campaign_length = 30.0
         self.daily_budget = self.total_budget/campaign_length   #daily budget
@@ -67,10 +67,12 @@ class BidOptimizer:
             if user_freq < self.user_freq_cap:
                 new_freq = int(self.redis.incr(user_id)) #incr freq for the user
                 if new_freq > self.user_freq_cap:
+                    self.redis.decr("totalspend", bid_val)
                     self.redis.decr(user_id)    #we passed freq capp for this user --> go back
                     return None #no bid
             else:
                 #we passed freq capp for this user --> no bid
+                self.redis.decr("totalspend", bid_val)
                 return None #Do Not bid for this user
             self.redis.set(data["id"], bid_val)  #let's store bid id along with bid val for later accounting
             shadow_key = "shadow:" + data["idfa"] + ":" + data["id"]    #shadow key is concat of shadow:user_id:bid_id
