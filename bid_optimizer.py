@@ -60,19 +60,19 @@ class BidOptimizer:
             #R1: make sure total spend is under total campaign budget
             if totalspend > self.total_budget:
                 #we have passed campaign total budget --> rollback & send nobid
-                self.redis.decr("totalspend", bid_val)
+                self.redis.incrbyfloat("totalspend", -1.0*bid_val)
                 return None #Do Not bid
             #we havent passed total budget so add corresponding states to redis for budget management
             #we should store this transaction into redis
             if user_freq < self.user_freq_cap:
                 new_freq = int(self.redis.incr(user_id)) #incr freq for the user
                 if new_freq > self.user_freq_cap:
-                    self.redis.decr("totalspend", bid_val)
+                    self.redis.incrbyfloat("totalspend", -1.0*bid_val)
                     self.redis.decr(user_id)    #we passed freq capp for this user --> go back
                     return None #no bid
             else:
                 #we passed freq capp for this user --> no bid
-                self.redis.decr("totalspend", bid_val)
+                self.redis.incrbyfloat("totalspend", -1.0*bid_val)
                 return None #Do Not bid for this user
             self.redis.set(data["id"], bid_val)  #let's store bid id along with bid val for later accounting
             shadow_key = "shadow:" + data["idfa"] + ":" + data["id"]    #shadow key is concat of shadow:user_id:bid_id
