@@ -13,7 +13,7 @@ class BidOptimizer:
         self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def load_campaign_parameters(self):
-        self.total_budget = 21.0  #campaign total budget in USD --> this should be moved to a config file
+        self.total_budget = 100.0  #campaign total budget in USD --> this should be moved to a config file
         self.nurl_ttl = 1800    #how long keep bidid in redis for account updating --> set 1800 secs (from mopub 10-15mins)
         campaign_length = 30.0
         self.daily_budget = self.total_budget/campaign_length   #daily budget
@@ -52,7 +52,7 @@ class BidOptimizer:
         user_id = "user:" + data["idfa"]    #user key for redis freq capping
         user_freq = 0   #if we haven't served any ad for this user, set user freq to zero by default
         try:
-            user_feq = int(self.redis.get(user_id))
+            user_freq = int(self.redis.get(user_id))
         except:
             pass
         if bid_val + currentspend < self.total_budget:
