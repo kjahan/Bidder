@@ -1,4 +1,4 @@
-# bidengine
+# RTB Bidder
 AI Bidder
 
 Parser module: grab json and extract all low level signals
